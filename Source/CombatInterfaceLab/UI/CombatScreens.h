@@ -62,10 +62,10 @@ protected:
 
 private:
     UPROPERTY() TObjectPtr<UCombatUIPresenter> Presenter;
-    UPROPERTY() TObjectPtr<UTextBlock> ColorModeLabel;
-    UPROPERTY() TObjectPtr<UTextBlock> SubtitleLabel;
-    UPROPERTY() TObjectPtr<UTextBlock> MotionLabel;
-    UPROPERTY() TObjectPtr<UTextBlock> ScaleLabel;
+    UPROPERTY() TObjectPtr<UTextBlock> ColorModeValue;
+    UPROPERTY() TObjectPtr<UTextBlock> SubtitleValue;
+    UPROPERTY() TObjectPtr<UTextBlock> MotionValue;
+    UPROPERTY() TObjectPtr<UTextBlock> ScaleValue;
 
     UFUNCTION() void CycleColorMode();
     UFUNCTION() void ToggleSubtitles();
@@ -139,7 +139,10 @@ protected:
 private:
     UPROPERTY() TObjectPtr<UCombatUIPresenter> Presenter;
     UPROPERTY() TObjectPtr<UTextBlock> WinnerText;
-    UPROPERTY() TObjectPtr<UTextBlock> ResultStats;
+    UPROPERTY() TObjectPtr<UTextBlock> ResultRound;
+    UPROPERTY() TObjectPtr<UTextBlock> ResultRedStrikes;
+    UPROPERTY() TObjectPtr<UTextBlock> ResultBlueStrikes;
+    UPROPERTY() TObjectPtr<UTextBlock> ResultRevision;
     UFUNCTION() void Rematch();
     UFUNCTION() void ReturnToSelection();
 };

@@ -3,6 +3,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/ButtonSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/GridPanel.h"
@@ -209,24 +210,60 @@ void UCombatSettingsScreen::BuildScreen()
     Layout->AddChildToVerticalBox(MakeText(LOCTEXT("SettingsKicker", "ACCESSIBILITY PROFILE"), 18, FLinearColor(1.0f, 0.78f, 0.04f)));
     Layout->AddChildToVerticalBox(MakeText(LOCTEXT("SettingsTitle", "SETTINGS"), 54))->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 24.0f));
 
-    UTextBlock* Label = nullptr;
-    UTextBlock* SettingLabel = nullptr;
-    UButton* Color = MakeButton(FText::GetEmpty(), SettingLabel);
-    ColorModeLabel = SettingLabel;
+    // Give every setting a fixed half-width label and value column. Keeping
+    // these as separate widgets prevents proportional text from wrapping one
+    // option differently or shifting values between rows.
+    const auto MakeSettingButton = [this](const FText& SettingName, UTextBlock*& OutValue)
+    {
+        UButton* Button = WidgetTree->ConstructWidget<UButton>();
+        Button->SetBackgroundColor(FLinearColor(0.12f, 0.13f, 0.15f, 1.0f));
+
+        UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
+        Button->AddChild(Row);
+        if (UButtonSlot* RowSlot = Cast<UButtonSlot>(Row->Slot))
+        {
+            RowSlot->SetHorizontalAlignment(HAlign_Fill);
+            RowSlot->SetVerticalAlignment(VAlign_Fill);
+        }
+
+        UTextBlock* Name = MakeText(SettingName, 22);
+        Name->SetAutoWrapText(false);
+        Name->SetJustification(ETextJustify::Right);
+        Name->SetMargin(FMargin(18.0f, 12.0f, 12.0f, 12.0f));
+        UHorizontalBoxSlot* NameSlot = Row->AddChildToHorizontalBox(Name);
+        SetFill(NameSlot);
+        NameSlot->SetHorizontalAlignment(HAlign_Fill);
+
+        OutValue = MakeText(FText::GetEmpty(), 22);
+        OutValue->SetAutoWrapText(false);
+        OutValue->SetMargin(FMargin(12.0f, 12.0f, 18.0f, 12.0f));
+        UHorizontalBoxSlot* ValueSlot = Row->AddChildToHorizontalBox(OutValue);
+        SetFill(ValueSlot);
+        ValueSlot->SetHorizontalAlignment(HAlign_Fill);
+
+        RegisterButton(Button);
+        return Button;
+    };
+
+    UTextBlock* Value = nullptr;
+    UButton* Color = MakeSettingButton(LOCTEXT("ColorModeSetting", "COLOUR-BLIND PALETTE"), Value);
+    ColorModeValue = Value;
     Color->OnClicked.AddDynamic(this, &UCombatSettingsScreen::CycleColorMode);
     Layout->AddChildToVerticalBox(Color)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
-    UButton* Subtitles = MakeButton(FText::GetEmpty(), SettingLabel);
-    SubtitleLabel = SettingLabel;
+    UButton* Subtitles = MakeSettingButton(LOCTEXT("SubtitlesSetting", "SUBTITLES"), Value);
+    SubtitleValue = Value;
     Subtitles->OnClicked.AddDynamic(this, &UCombatSettingsScreen::ToggleSubtitles);
     Layout->AddChildToVerticalBox(Subtitles)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
-    UButton* Motion = MakeButton(FText::GetEmpty(), SettingLabel);
-    MotionLabel = SettingLabel;
+    UButton* Motion = MakeSettingButton(LOCTEXT("MotionSetting", "REDUCED MOTION"), Value);
+    MotionValue = Value;
     Motion->OnClicked.AddDynamic(this, &UCombatSettingsScreen::ToggleMotion);
     Layout->AddChildToVerticalBox(Motion)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
-    UButton* Scale = MakeButton(FText::GetEmpty(), SettingLabel);
-    ScaleLabel = SettingLabel;
+    UButton* Scale = MakeSettingButton(LOCTEXT("ScaleSetting", "INTERFACE SCALE"), Value);
+    ScaleValue = Value;
     Scale->OnClicked.AddDynamic(this, &UCombatSettingsScreen::CycleScale);
     Layout->AddChildToVerticalBox(Scale)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+
+    UTextBlock* Label = nullptr;
     Layout->AddChildToVerticalBox(MakeText(
         LOCTEXT("AccessibilityNote", "Colour is never the only status cue. Reduced motion keeps transitions immediate and suppresses non-essential pulses. Subtitles include speaker labels."),
         18,
@@ -244,7 +281,7 @@ void UCombatSettingsScreen::SetPresenter(UCombatUIPresenter* InPresenter)
 
 void UCombatSettingsScreen::Refresh()
 {
-    if (!Presenter || !ColorModeLabel)
+    if (!Presenter || !ColorModeValue || !SubtitleValue || !MotionValue || !ScaleValue)
     {
         return;
     }
@@ -257,11 +294,11 @@ void UCombatSettingsScreen::Refresh()
     case ECombatColorVisionMode::Tritanopia: ColorName = LOCTEXT("Tritanopia", "TRITANOPIA"); break;
     default: ColorName = LOCTEXT("Standard", "STANDARD"); break;
     }
-    ColorModeLabel->SetText(FText::Format(LOCTEXT("ColorModeFormat", "COLOUR-BLIND PALETTE     {0}"), ColorName));
-    SubtitleLabel->SetText(FText::Format(LOCTEXT("SubtitlesFormat", "SUBTITLES     {0}"), OnOff(Settings.bSubtitlesEnabled)));
-    MotionLabel->SetText(FText::Format(LOCTEXT("MotionFormat", "REDUCED MOTION     {0}"), OnOff(Settings.bReducedMotion)));
-    ScaleLabel->SetText(FText::Format(
-        LOCTEXT("ScaleFormat", "INTERFACE SCALE     {0}%"),
+    ColorModeValue->SetText(ColorName);
+    SubtitleValue->SetText(OnOff(Settings.bSubtitlesEnabled));
+    MotionValue->SetText(OnOff(Settings.bReducedMotion));
+    ScaleValue->SetText(FText::Format(
+        LOCTEXT("ScaleValueFormat", "{0}%"),
         FText::AsNumber(FMath::RoundToInt(Settings.InterfaceScale * 100.0f))));
 }
 
@@ -447,8 +484,27 @@ void UCombatResultsScreen::BuildScreen()
     Layout->AddChildToVerticalBox(MakeText(LOCTEXT("OfficialResult", "OFFICIAL RESULT"), 18, FLinearColor(1.0f, 0.78f, 0.04f)));
     WinnerText = MakeText(LOCTEXT("WinnerPlaceholder", "WINNER"), 55);
     Layout->AddChildToVerticalBox(WinnerText)->SetPadding(FMargin(0.0f, 8.0f, 0.0f, 18.0f));
-    ResultStats = MakeText(FText::GetEmpty(), 27);
-    Layout->AddChildToVerticalBox(ResultStats)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 28.0f));
+
+    UGridPanel* ResultsGrid = WidgetTree->ConstructWidget<UGridPanel>();
+    Layout->AddChildToVerticalBox(ResultsGrid)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 28.0f));
+    const FText ResultLabels[] = {
+        LOCTEXT("ResultRoundLabel", "ROUND"),
+        LOCTEXT("ResultRedStrikesLabel", "RED SIGNIFICANT STRIKES"),
+        LOCTEXT("ResultBlueStrikesLabel", "BLUE SIGNIFICANT STRIKES"),
+        LOCTEXT("ResultRevisionLabel", "AUTHORITATIVE REVISION")
+    };
+    UTextBlock* ResultValues[UE_ARRAY_COUNT(ResultLabels)] = {};
+    for (int32 Row = 0; Row < UE_ARRAY_COUNT(ResultLabels); ++Row)
+    {
+        UTextBlock* ResultLabel = MakeText(ResultLabels[Row], 27);
+        ResultsGrid->AddChildToGrid(ResultLabel, Row, 0)->SetPadding(FMargin(0.0f, 0.0f, 42.0f, 0.0f));
+        ResultValues[Row] = MakeText(FText::GetEmpty(), 27);
+        ResultsGrid->AddChildToGrid(ResultValues[Row], Row, 1);
+    }
+    ResultRound = ResultValues[0];
+    ResultRedStrikes = ResultValues[1];
+    ResultBlueStrikes = ResultValues[2];
+    ResultRevision = ResultValues[3];
     UTextBlock* Label = nullptr;
     UButton* RematchButton = MakeButton(LOCTEXT("Rematch", "REMATCH"), Label);
     RematchButton->OnClicked.AddDynamic(this, &UCombatResultsScreen::Rematch);
@@ -469,17 +525,15 @@ void UCombatResultsScreen::SetPresenter(UCombatUIPresenter* InPresenter)
 
 void UCombatResultsScreen::UpdateSnapshot(const FCombatMatchSnapshot& Snapshot)
 {
-    if (!WinnerText || !Presenter)
+    if (!WinnerText || !ResultRound || !ResultRedStrikes || !ResultBlueStrikes || !ResultRevision || !Presenter)
     {
         return;
     }
     WinnerText->SetText(FText::Format(LOCTEXT("WinnerFormat", "{0} WINS"), Presenter->FighterName(Snapshot.WinnerId)));
-    ResultStats->SetText(FText::Format(
-        LOCTEXT("ResultFormat", "ROUND                     {0}\nRED SIGNIFICANT STRIKES   {1}\nBLUE SIGNIFICANT STRIKES  {2}\nAUTHORITATIVE REVISION    {3}"),
-        FText::AsNumber(Snapshot.Round),
-        FText::AsNumber(Snapshot.RedCorner.SignificantStrikes),
-        FText::AsNumber(Snapshot.BlueCorner.SignificantStrikes),
-        FText::AsNumber(Snapshot.Revision)));
+    ResultRound->SetText(FText::AsNumber(Snapshot.Round));
+    ResultRedStrikes->SetText(FText::AsNumber(Snapshot.RedCorner.SignificantStrikes));
+    ResultBlueStrikes->SetText(FText::AsNumber(Snapshot.BlueCorner.SignificantStrikes));
+    ResultRevision->SetText(FText::AsNumber(Snapshot.Revision));
 }
 
 void UCombatResultsScreen::Rematch() { if (Presenter) Presenter->Rematch(); }
