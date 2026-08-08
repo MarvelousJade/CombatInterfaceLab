@@ -33,7 +33,11 @@ private:
     UPROPERTY()
     TObjectPtr<UTextBlock> FighterBio;
     UPROPERTY()
-    TObjectPtr<UTextBlock> FighterStats;
+    TObjectPtr<UTextBlock> FighterPower;
+    UPROPERTY()
+    TObjectPtr<UTextBlock> FighterSpeed;
+    UPROPERTY()
+    TObjectPtr<UTextBlock> FighterGrappling;
 
     UFUNCTION() void ChooseFighter0();
     UFUNCTION() void ChooseFighter1();

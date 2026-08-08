@@ -5,6 +5,8 @@
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/GridPanel.h"
+#include "Components/GridSlot.h"
 #include "Components/ProgressBar.h"
 #include "Components/Spacer.h"
 #include "Components/TextBlock.h"
@@ -101,8 +103,28 @@ void UCombatFighterSelectScreen::BuildScreen()
     FighterBio = MakeText(FText::GetEmpty(), 22, FLinearColor(1.0f, 0.78f, 0.04f));
     CardLayout->AddChildToVerticalBox(FighterBio);
     CardLayout->AddChildToVerticalBox(MakeSpacer(34.0f));
-    FighterStats = MakeText(FText::GetEmpty(), 27);
-    CardLayout->AddChildToVerticalBox(FighterStats);
+
+    // Use real columns instead of spacing a proportional font. This keeps
+    // every ability value on the same vertical axis for all locales.
+    UGridPanel* StatsGrid = WidgetTree->ConstructWidget<UGridPanel>();
+    CardLayout->AddChildToVerticalBox(StatsGrid);
+    const FText StatLabels[] = {
+        LOCTEXT("PowerStat", "POWER"),
+        LOCTEXT("SpeedStat", "SPEED"),
+        LOCTEXT("GrapplingStat", "GRAPPLING")
+    };
+    UTextBlock* StatValues[UE_ARRAY_COUNT(StatLabels)] = {};
+    for (int32 Row = 0; Row < UE_ARRAY_COUNT(StatLabels); ++Row)
+    {
+        UTextBlock* StatLabel = MakeText(StatLabels[Row], 27);
+        StatsGrid->AddChildToGrid(StatLabel, Row, 0)->SetPadding(FMargin(0.0f, 0.0f, 42.0f, 0.0f));
+        StatValues[Row] = MakeText(FText::GetEmpty(), 27);
+        StatsGrid->AddChildToGrid(StatValues[Row], Row, 1);
+    }
+    FighterPower = StatValues[0];
+    FighterSpeed = StatValues[1];
+    FighterGrappling = StatValues[2];
+
     CardLayout->AddChildToVerticalBox(MakeSpacer(32.0f));
     UTextBlock* Hint = MakeText(LOCTEXT("InputHint", "D-PAD / ARROWS  Navigate     A / ENTER  Confirm     Mouse supported"), 17, FLinearColor(0.67f, 0.69f, 0.72f));
     CardLayout->AddChildToVerticalBox(Hint);
@@ -142,7 +164,7 @@ void UCombatFighterSelectScreen::OpenSettings() { if (Presenter) Presenter->Open
 
 void UCombatFighterSelectScreen::RefreshSelection()
 {
-    if (!Presenter || !FighterName || !FighterStats)
+    if (!Presenter || !FighterName || !FighterPower || !FighterSpeed || !FighterGrappling)
     {
         return;
     }
@@ -171,11 +193,9 @@ void UCombatFighterSelectScreen::RefreshSelection()
         Fighter.Nickname,
         Fighter.Country,
         Fighter.Archetype));
-    FighterStats->SetText(FText::Format(
-        LOCTEXT("StatsFormat", "POWER             {0}\nSPEED             {1}\nGRAPPLING         {2}"),
-        FText::AsNumber(Fighter.Power),
-        FText::AsNumber(Fighter.Speed),
-        FText::AsNumber(Fighter.Grappling)));
+    FighterPower->SetText(FText::AsNumber(Fighter.Power));
+    FighterSpeed->SetText(FText::AsNumber(Fighter.Speed));
+    FighterGrappling->SetText(FText::AsNumber(Fighter.Grappling));
 }
 
 void UCombatSettingsScreen::BuildScreen()
