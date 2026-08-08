@@ -10,4 +10,5 @@ Saved/
 *.VC.opendb
 *.suo
 *.trace
+*.utrace
 TestData/AutomationTransient/

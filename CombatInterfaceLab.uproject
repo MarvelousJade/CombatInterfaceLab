@@ -1,6 +1,6 @@
 {
   "FileVersion": 3,
-  "EngineAssociation": "5.6",
+  "EngineAssociation": "5.8",
   "Category": "Games",
   "Description": "Controller-first, event-driven Unreal combat interface technical demo.",
   "Modules": [
@@ -11,6 +11,43 @@
       "AdditionalDependencies": [
         "Engine",
         "UMG"
+      ]
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "ModelContextProtocol",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "EditorToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "UMGToolSet",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "SlateInspectorToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    },
+    {
+      "Name": "AutomationTestToolset",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
       ]
     }
   ]
