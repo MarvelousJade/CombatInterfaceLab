@@ -7,6 +7,7 @@
 #include "Components/OverlaySlot.h"
 #include "Components/SafeZone.h"
 #include "Components/ScaleBox.h"
+#include "Components/ScaleBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
@@ -84,14 +85,26 @@ void UCombatLabRootWidget::BuildInterface()
     DesignSurface->SetWidthOverride(1600.0f);
     DesignSurface->SetHeightOverride(900.0f);
     ResponsiveScale->AddChild(DesignSurface);
+    if (UScaleBoxSlot* SurfaceSlot = Cast<UScaleBoxSlot>(DesignSurface->Slot))
+    {
+        SurfaceSlot->SetHorizontalAlignment(HAlign_Center);
+        SurfaceSlot->SetVerticalAlignment(VAlign_Center);
+    }
 
     InterfaceScaleBox = WidgetTree->ConstructWidget<UScaleBox>();
     InterfaceScaleBox->SetStretch(EStretch::UserSpecified);
     InterfaceScaleBox->SetUserSpecifiedScale(1.0f);
     DesignSurface->AddChild(InterfaceScaleBox);
 
+    // UserSpecified ScaleBox children otherwise collapse to each screen's
+    // desired width, producing a different layout footprint per screen.
+    USizeBox* InterfaceSurface = WidgetTree->ConstructWidget<USizeBox>();
+    InterfaceSurface->SetWidthOverride(1600.0f);
+    InterfaceSurface->SetHeightOverride(900.0f);
+    InterfaceScaleBox->AddChild(InterfaceSurface);
+
     ScreenSwitcher = WidgetTree->ConstructWidget<UWidgetSwitcher>();
-    InterfaceScaleBox->AddChild(ScreenSwitcher);
+    InterfaceSurface->AddChild(ScreenSwitcher);
     FighterSelectScreen = WidgetTree->ConstructWidget<UCombatFighterSelectScreen>();
     SettingsScreen = WidgetTree->ConstructWidget<UCombatSettingsScreen>();
     MatchHudScreen = WidgetTree->ConstructWidget<UCombatMatchHudScreen>();
