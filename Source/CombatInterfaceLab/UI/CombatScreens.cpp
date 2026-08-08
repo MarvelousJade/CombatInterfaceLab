@@ -19,7 +19,9 @@ namespace
 void StyleRoot(UBorder* Root)
 {
     Root->SetBrushColor(FLinearColor(0.018f, 0.021f, 0.027f, 1.0f));
-    Root->SetPadding(FMargin(54.0f, 38.0f));
+    // Reserve the top-right status lane so the persistent connection banner
+    // never obscures fighter names or screen headings.
+    Root->SetPadding(FMargin(54.0f, 72.0f, 54.0f, 38.0f));
 }
 
 void SetFill(UVerticalBoxSlot* Slot)

@@ -2,7 +2,6 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
-#include "Components/InvalidationBox.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/SafeZone.h"
@@ -66,12 +65,11 @@ void UCombatLabRootWidget::SetPresenter(UCombatUIPresenter* InPresenter)
 
 void UCombatLabRootWidget::BuildInterface()
 {
-    UInvalidationBox* InvalidationRoot = WidgetTree->ConstructWidget<UInvalidationBox>();
-    InvalidationRoot->SetCanCache(true);
-    WidgetTree->RootWidget = InvalidationRoot;
-
+    // Global invalidation is enabled in DefaultEngine.ini. A nested
+    // UInvalidationBox here caused stale overlay layers when the HUD updated
+    // more frequently than the connection banner.
     UOverlay* Overlay = WidgetTree->ConstructWidget<UOverlay>();
-    InvalidationRoot->AddChild(Overlay);
+    WidgetTree->RootWidget = Overlay;
 
     USafeZone* SafeZone = WidgetTree->ConstructWidget<USafeZone>();
     Overlay->AddChildToOverlay(SafeZone);
@@ -82,8 +80,8 @@ void UCombatLabRootWidget::BuildInterface()
     SafeZone->AddChild(ResponsiveScale);
 
     USizeBox* DesignSurface = WidgetTree->ConstructWidget<USizeBox>();
-    DesignSurface->SetWidthOverride(1600.0f);
-    DesignSurface->SetHeightOverride(900.0f);
+    DesignSurface->SetWidthOverride(1920.0f);
+    DesignSurface->SetHeightOverride(1080.0f);
     ResponsiveScale->AddChild(DesignSurface);
     if (UScaleBoxSlot* SurfaceSlot = Cast<UScaleBoxSlot>(DesignSurface->Slot))
     {
@@ -99,8 +97,8 @@ void UCombatLabRootWidget::BuildInterface()
     // UserSpecified ScaleBox children otherwise collapse to each screen's
     // desired width, producing a different layout footprint per screen.
     USizeBox* InterfaceSurface = WidgetTree->ConstructWidget<USizeBox>();
-    InterfaceSurface->SetWidthOverride(1600.0f);
-    InterfaceSurface->SetHeightOverride(900.0f);
+    InterfaceSurface->SetWidthOverride(1920.0f);
+    InterfaceSurface->SetHeightOverride(1080.0f);
     InterfaceScaleBox->AddChild(InterfaceSurface);
 
     ScreenSwitcher = WidgetTree->ConstructWidget<UWidgetSwitcher>();
@@ -156,6 +154,13 @@ void UCombatLabRootWidget::HandleScreenChanged(const ECombatLabScreen Screen)
     case ECombatLabScreen::MatchHud: MatchHudScreen->Activate(); break;
     case ECombatLabScreen::Pause: PauseScreen->Activate(); break;
     case ECombatLabScreen::Results: ResultsScreen->UpdateSnapshot(Presenter->GetSnapshot()); ResultsScreen->Activate(); break;
+    }
+
+    // Screen replacement can introduce a new cached paint layer. Refresh the
+    // persistent status lane so it remains above that layer without polling.
+    if (Presenter)
+    {
+        HandleConnectionChanged(Presenter->GetConnectionStatus());
     }
 }
 

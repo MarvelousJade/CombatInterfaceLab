@@ -56,8 +56,10 @@ bool FCombatCaptureUIScreenCommand::Update()
 
     FAutomationScreenshotOptions Options =
         UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance::Low, 0.0f);
-    // Preserve the active viewport size. Resizing an editor PIE window here can
-    // invalidate Slate's cached capture rectangle before the next screen.
+    // Keep every screen at the approved reference resolution. This test is
+    // intended for -game/-RenderOffscreen; editor PIE windows add title-bar
+    // geometry that cannot be resized reliably between captures.
+    Options.Resolution = FVector2D(1600.0f, 900.0f);
     Options.FrameDelay = 1;
     // The framework permits only one in-flight comparison. Keep this latent
     // command queued until the previous screenshot has completed.
